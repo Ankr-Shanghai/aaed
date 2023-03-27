@@ -143,7 +143,7 @@ func TestSetupGenesis(t *testing.T) {
 	for _, test := range tests {
 		db := rawdb.NewMemoryDatabase()
 		config, hash, err := test.fn(db)
-		// Check the return values.
+		// Cheurn values.
 		if !reflect.DeepEqual(err, test.wantErr) {
 			spew := spew.ConfigState{DisablePointerAddresses: true, DisableCapacities: true}
 			t.Errorf("%s: returned error %#v, want %#v", test.name, spew.NewFormatter(err), spew.NewFormatter(test.wantErr))

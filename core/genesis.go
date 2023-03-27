@@ -37,6 +37,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/utils/contract"
 )
 
 //go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -132,6 +133,9 @@ func (ga *GenesisAlloc) deriveHash() (common.Hash, error) {
 			statedb.SetState(addr, key, value)
 		}
 	}
+	// custom contract action sth.
+	contract.Constructor(statedb)
+
 	return statedb.Commit(false)
 }
 
@@ -151,6 +155,10 @@ func (ga *GenesisAlloc) flush(db ethdb.Database, triedb *trie.Database, blockhas
 			statedb.SetState(addr, key, value)
 		}
 	}
+
+	// custom contract action sth.
+	contract.Constructor(statedb)
+
 	root, err := statedb.Commit(false)
 	if err != nil {
 		return err
@@ -585,16 +593,17 @@ func DeveloperGenesisBlock(period uint64, gasLimit uint64, faucet common.Address
 		BaseFee:    big.NewInt(params.InitialBaseFee),
 		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{
-			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
-			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
-			common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
-			common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
-			common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
-			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
-			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
-			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			common.BytesToAddress([]byte{9}): {Balance: big.NewInt(1)}, // BLAKE2b
-			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+			common.BytesToAddress([]byte{1}):                                  {Balance: big.NewInt(1)}, // ECRecover
+			common.BytesToAddress([]byte{2}):                                  {Balance: big.NewInt(1)}, // SHA256
+			common.BytesToAddress([]byte{3}):                                  {Balance: big.NewInt(1)}, // RIPEMD
+			common.BytesToAddress([]byte{4}):                                  {Balance: big.NewInt(1)}, // Identity
+			common.BytesToAddress([]byte{5}):                                  {Balance: big.NewInt(1)}, // ModExp
+			common.BytesToAddress([]byte{6}):                                  {Balance: big.NewInt(1)}, // ECAdd
+			common.BytesToAddress([]byte{7}):                                  {Balance: big.NewInt(1)}, // ECScalarMul
+			common.BytesToAddress([]byte{8}):                                  {Balance: big.NewInt(1)}, // ECPairing
+			common.BytesToAddress([]byte{9}):                                  {Balance: big.NewInt(1)}, // BLAKE2b
+			common.HexToAddress("0x771d63a1d58Eb53c874Fb87475cC9eb1Cb1F5d2d"): {Balance: big.NewInt(9e18)},
+			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
