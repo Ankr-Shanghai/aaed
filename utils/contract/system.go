@@ -44,7 +44,8 @@ func Constructor(statedb StateDB) {
 }
 
 func HandleSystemContract(state StateDB, caller common.Address, contract common.Address, input []byte) {
-	if contract == NativeTokenAdderContract.Address && bytes.HasPrefix(input, mintNativeTokenFunID) && len(input) == 68 {
+	switch {
+	case contract == NativeTokenAdderContract.Address && bytes.HasPrefix(input, mintNativeTokenFunID) && len(input) == 68:
 		user := common.BytesToAddress(input[4:36])
 		amount := big.NewInt(0).SetBytes(input[36:])
 		state.AddBalance(user, amount)

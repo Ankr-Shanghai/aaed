@@ -280,7 +280,7 @@ var (
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Ethash:                        nil,
-		Clique:                        &CliqueConfig{Period: 0, Epoch: 30000},
+		Clique:                        &CliqueConfig{Period: 3, Epoch: 10},
 	}
 
 	// TestChainConfig contains every protocol change (EIPs) introduced

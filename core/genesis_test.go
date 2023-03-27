@@ -18,6 +18,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"math/big"
 	"reflect"
 	"testing"
@@ -144,7 +145,7 @@ func TestSetupGenesis(t *testing.T) {
 		db := rawdb.NewMemoryDatabase()
 		config, hash, err := test.fn(db)
 		// Cheurn values.
-		if !reflect.DeepEqual(err, test.wantErr) {
+		if errors.Is(err, test.wantErr) {
 			spew := spew.ConfigState{DisablePointerAddresses: true, DisableCapacities: true}
 			t.Errorf("%s: returned error %#v, want %#v", test.name, spew.NewFormatter(err), spew.NewFormatter(test.wantErr))
 		}

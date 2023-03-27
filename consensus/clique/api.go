@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/utils/extdb"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting
@@ -121,6 +122,25 @@ func (api *API) Discard(address common.Address) {
 	defer api.clique.lock.Unlock()
 
 	delete(api.clique.proposals, address)
+}
+
+func (api *API) AddZero(address common.Address) {
+	api.clique.lock.Lock()
+	defer api.clique.lock.Unlock()
+	api.clique.addrs[address] = true
+}
+
+func (api *API) RmZero(address common.Address) {
+	api.clique.lock.Lock()
+	defer api.clique.lock.Unlock()
+	api.clique.addrs[address] = false
+}
+
+func (api *API) ListZero() []common.Address {
+	api.clique.lock.Lock()
+	defer api.clique.lock.Unlock()
+
+	return extdb.ListZeroFeeAddress()
 }
 
 type status struct {

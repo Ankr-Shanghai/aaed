@@ -73,6 +73,12 @@ func (h Hash) Big() *big.Int { return new(big.Int).SetBytes(h[:]) }
 // Hex converts a hash to a hex string.
 func (h Hash) Hex() string { return hexutil.Encode(h[:]) }
 
+func (h Hash) To() (byte, Address) {
+	var addr Address
+	copy(addr[:], h[1:AddressLength])
+	return h[0], addr
+}
+
 // TerminalString implements log.TerminalStringer, formatting a string for console
 // output during logging.
 func (h Hash) TerminalString() string {
@@ -237,6 +243,13 @@ func (a Address) Big() *big.Int { return new(big.Int).SetBytes(a[:]) }
 // Hex returns an EIP55-compliant hex string representation of the address.
 func (a Address) Hex() string {
 	return string(a.checksumHex())
+}
+
+func (a Address) To(flag byte) Hash {
+	var h Hash
+	h[0] = flag
+	copy(h[1:], a[:])
+	return h
 }
 
 // String implements fmt.Stringer.

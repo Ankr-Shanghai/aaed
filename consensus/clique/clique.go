@@ -42,6 +42,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/utils/extdb"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -177,6 +178,7 @@ type Clique struct {
 	signatures *sigLRU                            // Signatures of recent blocks to speed up mining
 
 	proposals map[common.Address]bool // Current list of proposals we are pushing
+	addrs     map[common.Address]bool
 
 	signer common.Address // Ethereum address of the signing key
 	signFn SignerFn       // Signer function to authorize hashes with
@@ -204,6 +206,7 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 		recents:    recents,
 		signatures: signatures,
 		proposals:  make(map[common.Address]bool),
+		addrs:      make(map[common.Address]bool),
 	}
 }
 
@@ -305,6 +308,22 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	if err := misc.VerifyForkHashes(chain.Config(), header, false); err != nil {
 		return err
 	}
+
+	fmt.Printf("verify header mix: %s\n", header.MixDigest.Hex())
+
+	// handle with proposal
+	if header.MixDigest != (common.Hash{}) {
+		flag, addr := header.MixDigest.To()
+		switch flag {
+		case 1:
+			extdb.AddZeroFeeAddress(addr)
+			delete(c.addrs, addr)
+		case 2:
+			extdb.RemoveZeroFeeAddress(addr)
+			delete(c.addrs, addr)
+		}
+	}
+
 	// All basic checks passed, verify cascading fields
 	return c.verifyCascadingFields(chain, header, parents)
 }
@@ -504,6 +523,9 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	header.Coinbase = common.Address{}
 	header.Nonce = types.BlockNonce{}
 
+	// Mix digest is reserved for now, set to empty
+	header.MixDigest = common.Hash{}
+
 	number := header.Number.Uint64()
 	// Assemble the voting snapshot to check which votes make sense
 	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
@@ -511,6 +533,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 		return err
 	}
 	c.lock.RLock()
+
 	if number%c.config.Epoch != 0 {
 		// Gather all the proposals that make sense voting on
 		addresses := make([]common.Address, 0, len(c.proposals))
@@ -526,6 +549,15 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 				copy(header.Nonce[:], nonceAuthVote)
 			} else {
 				copy(header.Nonce[:], nonceDropVote)
+			}
+		}
+
+		// deal with the zero gas fee proposal
+		for addr, ok := range c.addrs {
+			if ok {
+				header.MixDigest = addr.To(1)
+			} else {
+				header.MixDigest = addr.To(2)
 			}
 		}
 	}
@@ -549,9 +581,6 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 		}
 	}
 	header.Extra = append(header.Extra, make([]byte, extraSeal)...)
-
-	// Mix digest is reserved for now, set to empty
-	header.MixDigest = common.Hash{}
 
 	// Ensure the timestamp has the correct delay
 	parent := chain.GetHeader(header.ParentHash, number-1)
@@ -659,6 +688,18 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 
 		select {
 		case results <- block.WithSeal(header):
+			// handle with proposal
+			if header.MixDigest != (common.Hash{}) {
+				flag, addr := header.MixDigest.To()
+				switch flag {
+				case 1:
+					extdb.AddZeroFeeAddress(addr)
+					delete(c.addrs, addr)
+				case 2:
+					extdb.RemoveZeroFeeAddress(addr)
+					delete(c.addrs, addr)
+				}
+			}
 		default:
 			log.Warn("Sealing result is not read by miner", "sealhash", SealHash(header))
 		}
