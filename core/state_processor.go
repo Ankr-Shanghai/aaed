@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/utils/extdb"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -147,10 +148,22 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
-	msg, err := TransactionToMessage(tx, types.MakeSigner(config, header.Number), header.BaseFee)
+
+	var (
+		msg *Message
+		err error
+	)
+
+	if tx.To() != nil && extdb.ContainsZeroFeeAddress(*tx.To()) {
+		msg, err = TransactionToMessage(tx, types.MakeSigner(config, header.Number), big.NewInt(0))
+	} else {
+		msg, err = TransactionToMessage(tx, types.MakeSigner(config, header.Number), header.BaseFee)
+	}
+
 	if err != nil {
 		return nil, err
 	}
+
 	// Create a new context to be used in the EVM environment
 	blockContext := NewEVMBlockContext(header, bc, author)
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, config, cfg)
