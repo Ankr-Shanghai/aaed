@@ -12,7 +12,6 @@ The extended features include:
 
 4. Providing block capacity of up to 2048 transactions.
 
-5. Fixed gas fee.
 
    
 
