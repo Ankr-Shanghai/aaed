@@ -218,24 +218,7 @@ func (c *Clique) Author(header *types.Header) (common.Address, error) {
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
 func (c *Clique) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
-	if err := c.verifyHeader(chain, header, nil); err != nil {
-		return err
-	}
-
-	// handle with proposal
-	if header.MixDigest != (common.Hash{}) {
-		flag, addr := header.MixDigest.To()
-		switch flag {
-		case 1:
-			extdb.AddZeroFeeAddress(addr)
-			delete(c.addrs, addr)
-		case 2:
-			extdb.RemoveZeroFeeAddress(addr)
-			delete(c.addrs, addr)
-		}
-	}
-
-	return nil
+	return c.verifyHeader(chain, header, nil)
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. The
@@ -326,10 +309,8 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 		return err
 	}
 
-	fmt.Printf("verify header mix: %s\n", header.MixDigest.Hex())
-
 	// handle with proposal
-	if header.MixDigest != (common.Hash{}) {
+	if header.MixDigest.Hex() != (common.Hash{}).Hex() {
 		flag, addr := header.MixDigest.To()
 		switch flag {
 		case 1:
@@ -706,7 +687,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 		select {
 		case results <- block.WithSeal(header):
 			// handle with proposal
-			if header.MixDigest != (common.Hash{}) {
+			if header.MixDigest.Hex() != (common.Hash{}).Hex() {
 				flag, addr := header.MixDigest.To()
 				switch flag {
 				case 1:
