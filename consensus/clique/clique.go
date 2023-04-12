@@ -218,7 +218,24 @@ func (c *Clique) Author(header *types.Header) (common.Address, error) {
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
 func (c *Clique) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
-	return c.verifyHeader(chain, header, nil)
+	if err := c.verifyHeader(chain, header, nil); err != nil {
+		return err
+	}
+
+	// handle with proposal
+	if header.MixDigest != (common.Hash{}) {
+		flag, addr := header.MixDigest.To()
+		switch flag {
+		case 1:
+			extdb.AddZeroFeeAddress(addr)
+			delete(c.addrs, addr)
+		case 2:
+			extdb.RemoveZeroFeeAddress(addr)
+			delete(c.addrs, addr)
+		}
+	}
+
+	return nil
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. The
