@@ -602,7 +602,7 @@ func DeveloperGenesisBlock(period uint64, gasLimit uint64, faucet common.Address
 			common.BytesToAddress([]byte{7}):                                  {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}):                                  {Balance: big.NewInt(1)}, // ECPairing
 			common.BytesToAddress([]byte{9}):                                  {Balance: big.NewInt(1)}, // BLAKE2b
-			common.HexToAddress("0x771d63a1d58Eb53c874Fb87475cC9eb1Cb1F5d2d"): {Balance: big.NewInt(9e18)},
+			common.HexToAddress("0x21De102994Bc986e02A795E0f39e5275817E7eF3"): {Balance: big.NewInt(9e18)},
 			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}

@@ -305,12 +305,6 @@ func (st *StateTransition) preCheck() error {
 				return fmt.Errorf("%w: address %v, maxPriorityFeePerGas: %s, maxFeePerGas: %s", ErrTipAboveFeeCap,
 					msg.From.Hex(), msg.GasTipCap, msg.GasFeeCap)
 			}
-			// This will panic if baseFee is nil, but basefee presence is verified
-			// as part of header validation.
-			if msg.GasFeeCap.Cmp(st.evm.Context.BaseFee) < 0 {
-				return fmt.Errorf("%w: address %v, maxFeePerGas: %s baseFee: %s", ErrFeeCapTooLow,
-					msg.From.Hex(), msg.GasFeeCap, st.evm.Context.BaseFee)
-			}
 		}
 	}
 	return st.buyGas()
@@ -354,13 +348,31 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		sender           = vm.AccountRef(msg.From)
 		rules            = st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber, st.evm.Context.Random != nil, st.evm.Context.Time)
 		contractCreation = msg.To == nil
+		gas              uint64
+		err              error
+		zeroGas          bool = false
 	)
 
-	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules.IsHomestead, rules.IsIstanbul, rules.IsShanghai)
-	if err != nil {
-		return nil, err
+	if contractCreation {
+		if extdb.ContainsZeroFeeAddress(msg.From) {
+			zeroGas = true
+		}
+	} else {
+		if extdb.ContainsZeroFeeAddress(msg.From) || extdb.ContainsZeroFeeAddress(*msg.To) {
+			zeroGas = true
+		}
 	}
+
+	if zeroGas {
+		gas = 0
+	} else {
+		// Check clauses 4-5, subtract intrinsic gas if everything is correct
+		gas, err = IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules.IsHomestead, rules.IsIstanbul, rules.IsShanghai)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if st.gasRemaining < gas {
 		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gasRemaining, gas)
 	}

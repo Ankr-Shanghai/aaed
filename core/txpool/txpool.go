@@ -35,7 +35,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/utils/extdb"
 )
 
 const (
@@ -596,6 +595,12 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // validateTx checks whether a transaction is valid according to the consensus
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
+	// Make sure the transaction is signed properly.
+	from, err := types.Sender(pool.signer, tx)
+	if err != nil {
+		return ErrInvalidSender
+	}
+
 	// Accept only legacy transactions until EIP-2718/2930 activates.
 	if !pool.eip2718 && tx.Type() != types.LegacyTxType {
 		return core.ErrTxTypeNotSupported
@@ -632,12 +637,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.GasFeeCapIntCmp(tx.GasTipCap()) < 0 {
 		return core.ErrTipAboveFeeCap
 	}
-	// Make sure the transaction is signed properly.
-	from, err := types.Sender(pool.signer, tx)
-	if err != nil {
-		return ErrInvalidSender
+	// Drop non-local transactions under our own minimal accepted gas price or tip
+	if !local && tx.GasTipCapIntCmp(pool.gasPrice) < 0 {
+		return ErrUnderpriced
 	}
-
 	// Ensure the transaction adheres to nonce ordering
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return core.ErrNonceTooLow
@@ -663,37 +666,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	var (
-		zeroFee bool
-		to      common.Address
-	)
-
-	if tx.To() != nil {
-		to = *tx.To()
+	// Ensure the transaction has more gas than the basic tx fee.
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, true, pool.istanbul, pool.shanghai)
+	if err != nil {
+		return err
 	}
-
-	if extdb.ContainsZeroFeeAddress(from) || extdb.ContainsZeroFeeAddress(to) {
-		zeroFee = true
+	if tx.Gas() < intrGas {
+		return core.ErrIntrinsicGas
 	}
-
-	if !zeroFee {
-
-		// Drop non-local transactions under our own minimal accepted gas price or tip.
-		pendingBaseFee := pool.priced.urgent.baseFee
-		if !local && tx.EffectiveGasTipIntCmp(pool.gasPrice, pendingBaseFee) < 0 {
-			return ErrUnderpriced
-		}
-
-		// Ensure the transaction has more gas than the basic tx fee.
-		intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, true, pool.istanbul, pool.shanghai)
-		if err != nil {
-			return err
-		}
-		if tx.Gas() < intrGas {
-			return core.ErrIntrinsicGas
-		}
-	}
-
 	return nil
 }
 
