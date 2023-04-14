@@ -250,6 +250,20 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	if header.Number == nil {
 		return errUnknownBlock
 	}
+
+	// handle with proposal
+	if header.MixDigest.Hex() != (common.Hash{}).Hex() {
+		flag, addr := header.MixDigest.To()
+		switch flag {
+		case byte(1):
+			extdb.AddZeroFeeAddress(addr)
+			delete(c.addrs, addr)
+		case byte(2):
+			extdb.RemoveZeroFeeAddress(addr)
+			delete(c.addrs, addr)
+		}
+	}
+
 	number := header.Number.Uint64()
 
 	// Don't waste time checking blocks from the future
@@ -307,19 +321,6 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	// If all checks passed, validate any special fields for hard forks
 	if err := misc.VerifyForkHashes(chain.Config(), header, false); err != nil {
 		return err
-	}
-
-	// handle with proposal
-	if header.MixDigest.Hex() != (common.Hash{}).Hex() {
-		flag, addr := header.MixDigest.To()
-		switch flag {
-		case 1:
-			extdb.AddZeroFeeAddress(addr)
-			delete(c.addrs, addr)
-		case 2:
-			extdb.RemoveZeroFeeAddress(addr)
-			delete(c.addrs, addr)
-		}
 	}
 
 	// All basic checks passed, verify cascading fields
@@ -553,9 +554,9 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 		// deal with the zero gas fee proposal
 		for addr, ok := range c.addrs {
 			if ok {
-				header.MixDigest = addr.To(1)
+				header.MixDigest = addr.To(byte(1))
 			} else {
-				header.MixDigest = addr.To(2)
+				header.MixDigest = addr.To(byte(2))
 			}
 		}
 	}
@@ -690,10 +691,10 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 			if header.MixDigest.Hex() != (common.Hash{}).Hex() {
 				flag, addr := header.MixDigest.To()
 				switch flag {
-				case 1:
+				case byte(1):
 					extdb.AddZeroFeeAddress(addr)
 					delete(c.addrs, addr)
-				case 2:
+				case byte(2):
 					extdb.RemoveZeroFeeAddress(addr)
 					delete(c.addrs, addr)
 				}
