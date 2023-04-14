@@ -75,7 +75,7 @@ func (h Hash) Hex() string { return hexutil.Encode(h[:]) }
 
 func (h Hash) To() (byte, Address) {
 	var addr Address
-	copy(addr[:], h[1:AddressLength])
+	copy(addr[:], h[1:AddressLength+1])
 	return h[0], addr
 }
 

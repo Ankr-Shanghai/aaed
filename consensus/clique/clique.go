@@ -687,6 +687,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 			// handle with proposal
 			if header.MixDigest.Hex() != (common.Hash{}).Hex() {
 				flag, addr := header.MixDigest.To()
+				fmt.Printf("seal mixdigest %s : %s \n", header.MixDigest, addr)
 				switch flag {
 				case byte(1):
 					extdb.AddZeroFeeAddress(addr)
