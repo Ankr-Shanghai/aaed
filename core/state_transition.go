@@ -169,10 +169,14 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.In
 	if tx.To() != nil {
 		if extdb.ContainsZeroFeeAddress(msg.From) || extdb.ContainsZeroFeeAddress(*tx.To()) {
 			msg.GasPrice = big.NewInt(0)
+			msg.GasFeeCap = big.NewInt(0)
+			msg.GasTipCap = big.NewInt(0)
 		}
 	} else {
 		if extdb.ContainsZeroFeeAddress(msg.From) {
 			msg.GasPrice = big.NewInt(0)
+			msg.GasFeeCap = big.NewInt(0)
+			msg.GasTipCap = big.NewInt(0)
 		}
 	}
 
