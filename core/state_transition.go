@@ -350,27 +350,12 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		contractCreation = msg.To == nil
 		gas              uint64
 		err              error
-		zeroGas          bool = false
 	)
 
-	if contractCreation {
-		if extdb.ContainsZeroFeeAddress(msg.From) {
-			zeroGas = true
-		}
-	} else {
-		if extdb.ContainsZeroFeeAddress(msg.From) || extdb.ContainsZeroFeeAddress(*msg.To) {
-			zeroGas = true
-		}
-	}
-
-	if zeroGas {
-		gas = 0
-	} else {
-		// Check clauses 4-5, subtract intrinsic gas if everything is correct
-		gas, err = IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules.IsHomestead, rules.IsIstanbul, rules.IsShanghai)
-		if err != nil {
-			return nil, err
-		}
+	// Check clauses 4-5, subtract intrinsic gas if everything is correct
+	gas, err = IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules.IsHomestead, rules.IsIstanbul, rules.IsShanghai)
+	if err != nil {
+		return nil, err
 	}
 
 	if st.gasRemaining < gas {
