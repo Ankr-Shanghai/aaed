@@ -442,6 +442,11 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 
 // ToBlock returns the genesis block according to genesis specification.
 func (g *Genesis) ToBlock() *types.Block {
+	// if set tm address, then replace default value
+	if g.Config.TM != nil {
+		contract.NativeTokenAdderContract.Storage[common.BigToHash(big.NewInt(0))] = common.HexToHash(*g.Config.TM)
+	}
+
 	root, err := g.Alloc.deriveHash()
 	if err != nil {
 		panic(err)
