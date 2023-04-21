@@ -74,11 +74,6 @@ web3._extend({
 			params: 1
 		}),
 		new web3._extend.Method({
-			name: 'rmzero',
-			call: 'clique_rmZero',
-			params: 1
-		}),
-		new web3._extend.Method({
 			name: 'listzero',
 			call: 'clique_listZero',
 			params: 0

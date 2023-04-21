@@ -258,9 +258,6 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 		case byte(1):
 			extdb.AddZeroFeeAddress(addr)
 			delete(c.addrs, addr)
-		case byte(2):
-			extdb.RemoveZeroFeeAddress(addr)
-			delete(c.addrs, addr)
 		}
 	}
 
@@ -690,9 +687,6 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 				switch flag {
 				case byte(1):
 					extdb.AddZeroFeeAddress(addr)
-					delete(c.addrs, addr)
-				case byte(2):
-					extdb.RemoveZeroFeeAddress(addr)
 					delete(c.addrs, addr)
 				}
 			}
