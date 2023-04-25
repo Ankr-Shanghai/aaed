@@ -138,6 +138,10 @@ func AddZeroFeeAddress(addr common.Address) {
 	addrsMgr.AddZeroAddr(addr)
 }
 
+func RmZeroFeeAddress(addr common.Address) {
+	addrsMgr.RemoveZeroAddr(addr)
+}
+
 func ContainsZeroFeeAddress(addr common.Address) bool {
 	return addrsMgr.ContainZeroAddr(addr)
 }

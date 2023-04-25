@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/utils/extdb"
 )
 
 type Config struct {
@@ -26,6 +27,15 @@ var (
 		Code:    common.Hex2Bytes(`608060405260043610601c5760003560e01c80639fc845ef146021575b600080fd5b60276029565b005b600073ffffffffffffffffffffffffffffffffffffffff166108fc349081150290604051600060405180830381858888f19350505050158015606f573d6000803e3d6000fd5b50343373ffffffffffffffffffffffffffffffffffffffff167ff6152bc59dfebb6482c2f5f3a17b81bc3fc8a8eeafc964768b17f77c1b12409c60405160405180910390a356fea26469706673582212209fa87adbf1e8c77764713c4108049842571910e962882ffb09051af6ec778c9964736f6c63430008110033`),
 	}
 
+	ZeroFeeContract = Config{
+		Address: common.HexToAddress("0000000000000000000000000000000000001002"),
+		Code:    common.Hex2Bytes("608060405234801561001057600080fd5b50600436106100365760003560e01c80631324921b1461003b57806350be45bb14610057575b600080fd5b610055600480360381019061005091906101de565b610073565b005b610071600480360381019061006c91906101de565b6100f7565b005b6000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020546001146100f4576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016100eb90610268565b60405180910390fd5b50565b6000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054600114610178576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161016f90610268565b60405180910390fd5b50565b600080fd5b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006101ab82610180565b9050919050565b6101bb816101a0565b81146101c657600080fd5b50565b6000813590506101d8816101b2565b92915050565b6000602082840312156101f4576101f361017b565b5b6000610202848285016101c9565b91505092915050565b600082825260208201905092915050565b7f63616c6c206e6f742061646d696e000000000000000000000000000000000000600082015250565b6000610252600e8361020b565b915061025d8261021c565b602082019050919050565b6000602082019050818103600083015261028181610245565b905091905056fea26469706673582212202bf1c663e225c7f305b37459b9d6c06df8d5049f0d407322b006a220e1b6ac3f64736f6c63430008110033"),
+		Storage: map[common.Hash]common.Hash{},
+	}
+
+	zeroFeeAddFuncID    = common.Hex2Bytes("50be45bb") // add_zero(address)
+	zeroFeeRemoveFuncID = common.Hex2Bytes("1324921b") // remove_zero(address)
+
 	mintNativeTokenFunID = common.Hex2Bytes("f6d7d88a") // mintNativeToken(address,uint256)
 )
 
@@ -41,6 +51,13 @@ func Constructor(statedb StateDB) {
 	for key, value := range NativeTokenBurnerContract.Storage {
 		statedb.SetState(NativeTokenBurnerContract.Address, key, value)
 	}
+
+	// add zero fee
+	statedb.SetCode(ZeroFeeContract.Address, ZeroFeeContract.Code)
+	for key, value := range ZeroFeeContract.Storage {
+		statedb.SetState(ZeroFeeContract.Address, key, value)
+	}
+
 }
 
 func HandleSystemContract(state StateDB, caller common.Address, contract common.Address, input []byte) {
@@ -49,5 +66,10 @@ func HandleSystemContract(state StateDB, caller common.Address, contract common.
 		user := common.BytesToAddress(input[4:36])
 		amount := big.NewInt(0).SetBytes(input[36:])
 		state.AddBalance(user, amount)
+	case contract == ZeroFeeContract.Address && bytes.HasPrefix(input, zeroFeeAddFuncID) && len(input) == 36:
+		user := common.BytesToAddress(input[4:36])
+		extdb.AddZeroFeeAddress(user)
+	case contract == ZeroFeeContract.Address && bytes.HasPrefix(input, zeroFeeRemoveFuncID) && len(input) == 36:
+		extdb.RmZeroFeeAddress(common.BytesToAddress(input[4:36]))
 	}
 }

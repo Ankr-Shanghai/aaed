@@ -447,6 +447,20 @@ func (g *Genesis) ToBlock() *types.Block {
 		contract.NativeTokenAdderContract.Storage[common.BigToHash(big.NewInt(0))] = common.HexToHash(*g.Config.TM)
 	}
 
+	if g.Config.ZM != nil {
+		big0hash := common.BigToHash(big.NewInt(0))
+		trueHash := common.BigToHash(big.NewInt(1))
+		ks := crypto.NewKeccakState()
+		for i := 0; i < len(g.Config.ZM); i++ {
+			key := append([]byte{}, common.HexToHash(*g.Config.ZM[i]).Bytes()...)
+			key = append(key, big0hash.Bytes()...)
+			ks.Reset()
+			ks.Write(key[:])
+			stateAddr := ks.Sum(nil)
+			contract.ZeroFeeContract.Storage[common.BytesToHash(stateAddr)] = trueHash
+		}
+	}
+
 	root, err := g.Alloc.deriveHash()
 	if err != nil {
 		panic(err)
@@ -590,6 +604,11 @@ func DeveloperGenesisBlock(period uint64, gasLimit uint64, faucet common.Address
 		Epoch:  config.Clique.Epoch,
 	}
 
+	zmone := "0x43F970Fb4256763b3C03bED26Df01eBDA6F488A5"
+	zmtwo := "0x21De102994Bc986e02A795E0f39e5275817E7eF3"
+	zmthree := "0x771d63a1d58Eb53c874Fb87475cC9eb1Cb1F5d2d"
+	config.ZM = []*string{&zmone, &zmtwo, &zmthree}
+
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &Genesis{
 		Config:     &config,
@@ -598,17 +617,19 @@ func DeveloperGenesisBlock(period uint64, gasLimit uint64, faucet common.Address
 		BaseFee:    big.NewInt(params.InitialBaseFee),
 		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{
-			common.BytesToAddress([]byte{1}):                                  {Balance: big.NewInt(1)}, // ECRecover
-			common.BytesToAddress([]byte{2}):                                  {Balance: big.NewInt(1)}, // SHA256
-			common.BytesToAddress([]byte{3}):                                  {Balance: big.NewInt(1)}, // RIPEMD
-			common.BytesToAddress([]byte{4}):                                  {Balance: big.NewInt(1)}, // Identity
-			common.BytesToAddress([]byte{5}):                                  {Balance: big.NewInt(1)}, // ModExp
-			common.BytesToAddress([]byte{6}):                                  {Balance: big.NewInt(1)}, // ECAdd
-			common.BytesToAddress([]byte{7}):                                  {Balance: big.NewInt(1)}, // ECScalarMul
-			common.BytesToAddress([]byte{8}):                                  {Balance: big.NewInt(1)}, // ECPairing
-			common.BytesToAddress([]byte{9}):                                  {Balance: big.NewInt(1)}, // BLAKE2b
-			common.HexToAddress("0x21De102994Bc986e02A795E0f39e5275817E7eF3"): {Balance: big.NewInt(9e18)},
-			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
+			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
+			common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
+			common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
+			common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
+			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
+			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
+			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
+			common.BytesToAddress([]byte{9}): {Balance: big.NewInt(1)}, // BLAKE2b
+			common.HexToAddress(zmone):       {Balance: big.NewInt(9e18)},
+			common.HexToAddress(zmtwo):       {Balance: big.NewInt(9e18)},
+			common.HexToAddress(zmthree):     {Balance: big.NewInt(9e18)},
+			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }

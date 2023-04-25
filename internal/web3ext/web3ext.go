@@ -69,11 +69,6 @@ web3._extend({
 			params: 1
 		}),
 		new web3._extend.Method({
-			name: 'addzero',
-			call: 'clique_addZero',
-			params: 1
-		}),
-		new web3._extend.Method({
 			name: 'listzero',
 			call: 'clique_listZero',
 			params: 0
