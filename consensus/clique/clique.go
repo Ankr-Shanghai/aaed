@@ -42,7 +42,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/utils/extdb"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -178,7 +177,6 @@ type Clique struct {
 	signatures *sigLRU                            // Signatures of recent blocks to speed up mining
 
 	proposals map[common.Address]bool // Current list of proposals we are pushing
-	addrs     map[common.Address]bool
 
 	signer common.Address // Ethereum address of the signing key
 	signFn SignerFn       // Signer function to authorize hashes with
@@ -206,7 +204,6 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 		recents:    recents,
 		signatures: signatures,
 		proposals:  make(map[common.Address]bool),
-		addrs:      make(map[common.Address]bool),
 	}
 }
 
@@ -249,16 +246,6 @@ func (c *Clique) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*typ
 func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.Header, parents []*types.Header) error {
 	if header.Number == nil {
 		return errUnknownBlock
-	}
-
-	// handle with proposal
-	if header.MixDigest.Hex() != (common.Hash{}).Hex() {
-		flag, addr := header.MixDigest.To()
-		switch flag {
-		case byte(1):
-			extdb.AddZeroFeeAddress(addr)
-			delete(c.addrs, addr)
-		}
 	}
 
 	number := header.Number.Uint64()
@@ -544,15 +531,6 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 				copy(header.Nonce[:], nonceDropVote)
 			}
 		}
-
-		// deal with the zero gas fee proposal
-		for addr, ok := range c.addrs {
-			if ok {
-				header.MixDigest = addr.To(byte(1))
-			} else {
-				header.MixDigest = addr.To(byte(2))
-			}
-		}
 	}
 
 	// Copy signer protected by mutex to avoid race condition
@@ -681,15 +659,6 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 
 		select {
 		case results <- block.WithSeal(header):
-			// handle with proposal
-			if header.MixDigest.Hex() != (common.Hash{}).Hex() {
-				flag, addr := header.MixDigest.To()
-				switch flag {
-				case byte(1):
-					extdb.AddZeroFeeAddress(addr)
-					delete(c.addrs, addr)
-				}
-			}
 		default:
 			log.Warn("Sealing result is not read by miner", "sealhash", SealHash(header))
 		}

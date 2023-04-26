@@ -124,18 +124,6 @@ func (api *API) Discard(address common.Address) {
 	delete(api.clique.proposals, address)
 }
 
-func (api *API) AddZero(address common.Address) {
-	api.clique.lock.Lock()
-	defer api.clique.lock.Unlock()
-	api.clique.addrs[address] = true
-}
-
-func (api *API) RmZero(address common.Address) {
-	api.clique.lock.Lock()
-	defer api.clique.lock.Unlock()
-	api.clique.addrs[address] = false
-}
-
 func (api *API) ListZero() []common.Address {
 	api.clique.lock.Lock()
 	defer api.clique.lock.Unlock()

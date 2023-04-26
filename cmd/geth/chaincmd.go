@@ -40,6 +40,7 @@ import (
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/utils/extdb"
 	"github.com/urfave/cli/v2"
 )
 
@@ -181,6 +182,9 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("Failed to read genesis file: %v", err)
 	}
 	defer file.Close()
+
+	extdb.InitAddrMgr(ctx.String("datadir"))
+	defer extdb.Close()
 
 	genesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {

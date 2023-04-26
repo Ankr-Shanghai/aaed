@@ -16,6 +16,7 @@ package extdb
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -36,6 +37,7 @@ func NewAddrMgr(datadir string) *AddrMgr {
 	)
 
 	if datadir != "" {
+		os.MkdirAll(datadir, 0755)
 		name := fmt.Sprintf("%s/%s", datadir, extenddb)
 		db, err = bbolt.Open(name, 0644, nil)
 		if err != nil {
