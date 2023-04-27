@@ -48,6 +48,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/utils/contract"
 )
 
 var (
@@ -439,6 +440,12 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, genesis *Genesis
 		bc.wg.Add(1)
 		go bc.maintainTxIndex()
 	}
+
+	// init zero gas fee list
+	statedb, _ := state.New(head.Root, bc.stateCache, bc.snaps)
+	contract.QueryZeroGasFee(statedb)
+	statedb = nil // friend for gc
+
 	return bc, nil
 }
 

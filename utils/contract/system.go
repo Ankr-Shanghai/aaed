@@ -55,7 +55,6 @@ func Constructor(statedb StateDB) {
 	for key, value := range ZeroFeeContract.Storage {
 		statedb.SetState(ZeroFeeContract.Address, key, value)
 	}
-
 }
 
 var (
@@ -63,12 +62,13 @@ var (
 )
 
 func HandleSystemContract(state StateDB, caller common.Address, contract common.Address, input []byte) {
-	queryZeroGasFee(state)
 	switch {
 	case contract == NativeTokenAdderContract.Address && bytes.HasPrefix(input, mintNativeTokenFunID) && len(input) == 68:
 		user := common.BytesToAddress(input[4:36])
 		amount := big.NewInt(0).SetBytes(input[36:])
 		state.AddBalance(user, amount)
+	case contract == ZeroFeeContract.Address && bytes.HasPrefix(input, zeroFeeAddFuncID) && len(input) == 36:
+		QueryZeroGasFee(state)
 	}
 }
 
@@ -82,7 +82,7 @@ func ExistZeroGasFee(state StateDB, addr common.Address) bool {
 	return state.GetState(ZeroFeeContract.Address, common.BytesToHash(skey)) == common.Big1Hash
 }
 
-func queryZeroGasFee(state StateDB) {
+func QueryZeroGasFee(state StateDB) {
 	alen := state.GetState(ZeroFeeContract.Address, common.Big2Hash).Big().Int64()
 	if alen <= 0 {
 		return
