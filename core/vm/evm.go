@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/utils/contract"
 	"github.com/holiman/uint256"
 )
 
@@ -244,9 +243,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if err != ErrExecutionReverted {
 			gas = 0
 		}
-	} else {
-		contract.HandleSystemContract(evm.StateDB, caller.Address(), addr, input)
 	}
+
 	return ret, gas, err
 }
 

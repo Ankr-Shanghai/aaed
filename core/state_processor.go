@@ -28,7 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/utils/extdb"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -75,10 +74,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
-		msg, err := TransactionToMessage(tx, types.MakeSigner(p.config, header.Number), header.BaseFee)
+		msg, err := TransactionToMessage(statedb, tx, types.MakeSigner(p.config, header.Number), header.BaseFee)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
+
 		statedb.SetTxContext(tx.Hash(), i)
 		receipt, err := applyTransaction(msg, p.config, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv)
 		if err != nil {
@@ -149,17 +149,7 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
 
-	var (
-		msg *Message
-		err error
-	)
-
-	if tx.To() != nil && extdb.ContainsZeroFeeAddress(*tx.To()) {
-		msg, err = TransactionToMessage(tx, types.MakeSigner(config, header.Number), big.NewInt(0))
-	} else {
-		msg, err = TransactionToMessage(tx, types.MakeSigner(config, header.Number), header.BaseFee)
-	}
-
+	msg, err := TransactionToMessage(statedb, tx, types.MakeSigner(config, header.Number), header.BaseFee)
 	if err != nil {
 		return nil, err
 	}

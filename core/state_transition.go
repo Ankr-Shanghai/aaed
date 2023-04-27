@@ -23,10 +23,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	cmath "github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/utils/extdb"
+	"github.com/ethereum/go-ethereum/utils/contract"
 )
 
 // ExecutionResult includes all output after executing given evm
@@ -144,8 +145,7 @@ type Message struct {
 }
 
 // TransactionToMessage converts a transaction into a Message.
-func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.Int) (*Message, error) {
-
+func TransactionToMessage(statedb *state.StateDB, tx *types.Transaction, s types.Signer, baseFee *big.Int) (*Message, error) {
 	msg := &Message{
 		Nonce:             tx.Nonce(),
 		GasLimit:          tx.Gas(),
@@ -163,21 +163,13 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.In
 		msg.GasPrice = cmath.BigMin(msg.GasPrice.Add(msg.GasTipCap, baseFee), msg.GasFeeCap)
 	}
 	var err error
-
 	msg.From, err = types.Sender(s, tx)
 
-	if tx.To() != nil {
-		if extdb.ContainsZeroFeeAddress(msg.From) || extdb.ContainsZeroFeeAddress(*tx.To()) {
-			msg.GasPrice = big.NewInt(0)
-			msg.GasFeeCap = big.NewInt(0)
-			msg.GasTipCap = big.NewInt(0)
-		}
-	} else {
-		if extdb.ContainsZeroFeeAddress(msg.From) {
-			msg.GasPrice = big.NewInt(0)
-			msg.GasFeeCap = big.NewInt(0)
-			msg.GasTipCap = big.NewInt(0)
-		}
+	if contract.ExistZeroGasFee(statedb, msg.From) ||
+		tx.To() != nil && contract.ExistZeroGasFee(statedb, *tx.To()) {
+		msg.GasPrice = big.NewInt(0)
+		msg.GasFeeCap = big.NewInt(0)
+		msg.GasTipCap = big.NewInt(0)
 	}
 
 	return msg, err
@@ -388,6 +380,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, msg.Value)
+		if vmerr == nil {
+			contract.HandleSystemContract(st.evm.StateDB, sender.Address(), st.to(), msg.Data)
+		}
 	}
 
 	if !rules.IsLondon {

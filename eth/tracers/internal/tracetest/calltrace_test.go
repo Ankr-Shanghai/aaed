@@ -145,7 +145,7 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
 			evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
-			msg, err := core.TransactionToMessage(tx, signer, nil)
+			msg, err := core.TransactionToMessage(statedb, tx, signer, nil)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
 			}
@@ -220,7 +220,9 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 		b.Fatalf("failed to parse testcase input: %v", err)
 	}
 	signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)))
-	msg, err := core.TransactionToMessage(tx, signer, nil)
+	_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
+
+	msg, err := core.TransactionToMessage(statedb, tx, signer, nil)
 	if err != nil {
 		b.Fatalf("failed to prepare transaction for tracing: %v", err)
 	}
@@ -238,7 +240,6 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 		Difficulty:  (*big.Int)(test.Context.Difficulty),
 		GasLimit:    uint64(test.Context.GasLimit),
 	}
-	_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -314,7 +315,7 @@ func TestZeroValueToNotExitCall(t *testing.T) {
 		t.Fatalf("failed to create call tracer: %v", err)
 	}
 	evm := vm.NewEVM(context, txContext, statedb, params.MainnetChainConfig, vm.Config{Debug: true, Tracer: tracer})
-	msg, err := core.TransactionToMessage(tx, signer, nil)
+	msg, err := core.TransactionToMessage(statedb, tx, signer, nil)
 	if err != nil {
 		t.Fatalf("failed to prepare transaction for tracing: %v", err)
 	}

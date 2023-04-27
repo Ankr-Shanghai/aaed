@@ -38,7 +38,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/utils/contract"
-	"github.com/ethereum/go-ethereum/utils/extdb"
 )
 
 //go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -459,7 +458,6 @@ func (g *Genesis) ToBlock() *types.Block {
 			ks.Write(key[:])
 			stateAddr := ks.Sum(nil)
 			contract.ZeroFeeContract.Storage[common.BytesToHash(stateAddr)] = trueHash
-			extdb.AddZeroFeeAddress(common.HexToAddress(*g.Config.ZM[i]))
 		}
 	}
 
@@ -609,8 +607,7 @@ func DeveloperGenesisBlock(period uint64, gasLimit uint64, faucet common.Address
 	zmone := "0x43F970Fb4256763b3C03bED26Df01eBDA6F488A5"
 	zmtwo := "0x21De102994Bc986e02A795E0f39e5275817E7eF3"
 	zmthree := "0x771d63a1d58Eb53c874Fb87475cC9eb1Cb1F5d2d"
-	// config.ZM = []*string{&zmone, &zmtwo, &zmthree}
-	config.ZM = []*string{&zmone}
+	config.ZM = []*string{&zmone, &zmtwo, &zmthree}
 
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &Genesis{
