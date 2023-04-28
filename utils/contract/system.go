@@ -36,6 +36,7 @@ var (
 	}
 
 	zeroFeeAddFuncID     = common.Hex2Bytes("50be45bb") // add_zero(address)
+	zeroFeeRemoveFuncID  = common.Hex2Bytes("1324921b") // remove_zero(address)
 	mintNativeTokenFunID = common.Hex2Bytes("f6d7d88a") // mintNativeToken(address,uint256)
 )
 
@@ -70,6 +71,8 @@ func HandleSystemContract(state StateDB, caller common.Address, contract common.
 		amount := big.NewInt(0).SetBytes(input[36:])
 		state.AddBalance(user, amount)
 	case contract == ZeroFeeContract.Address && bytes.HasPrefix(input, zeroFeeAddFuncID) && len(input) == 36:
+		QueryZeroGasFee(state)
+	case contract == ZeroFeeContract.Address && bytes.HasPrefix(input, zeroFeeRemoveFuncID) && len(input) == 36:
 		QueryZeroGasFee(state)
 	}
 }
