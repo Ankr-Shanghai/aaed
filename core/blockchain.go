@@ -442,9 +442,11 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, genesis *Genesis
 	}
 
 	// init zero gas fee list
-	statedb, _ := state.New(bc.CurrentSnapBlock().Root, bc.stateCache, bc.snaps)
-	contract.QueryZeroGasFee(statedb)
-	statedb = nil // friend for gc
+	statedb, err := state.New(bc.CurrentSnapBlock().Root, bc.stateCache, bc.snaps)
+	if err == nil {
+		contract.QueryZeroGasFee(statedb)
+		statedb = nil // friend for gc
+	}
 
 	return bc, nil
 }
