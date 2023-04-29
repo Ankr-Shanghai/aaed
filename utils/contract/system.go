@@ -61,7 +61,7 @@ func Constructor(statedb StateDB) {
 }
 
 var (
-	zeroGasLists = make(map[common.Address]struct{})
+	zeroGasLists []common.Address
 )
 
 func HandleSystemContract(state StateDB, caller common.Address, contract common.Address, input []byte) {
@@ -100,18 +100,16 @@ func QueryZeroGasFee(state StateDB) {
 	skey := ks.Sum(nil)
 	start := common.BytesToHash(skey).Big()
 
+	zeroGasLists = make([]common.Address, alen, alen)
+
 	var index int64
 	for index = 0; index < alen; index++ {
 		key := big.NewInt(0).Add(start, big.NewInt(index))
 		ah := state.GetState(ZeroFeeContract.Address, common.BigToHash(key))
-		zeroGasLists[common.BigToAddress(ah.Big())] = struct{}{}
+		zeroGasLists[index] = common.BigToAddress(ah.Big())
 	}
 }
 
 func ListZeroGas() []common.Address {
-	rs := make([]common.Address, 0, len(zeroGasLists))
-	for key := range zeroGasLists {
-		rs = append(rs, key)
-	}
-	return rs
+	return zeroGasLists
 }
