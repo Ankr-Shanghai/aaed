@@ -23,6 +23,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	systemContract "github.com/ethereum/go-ethereum/utils/contract"
 	"github.com/holiman/uint256"
@@ -525,6 +526,7 @@ func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 func (evm *EVM) handleSystemContract(contract common.Address, input []byte, gas uint64) {
 	switch {
 	case contract == systemContract.NativeTokenAdderContract.Address && bytes.HasPrefix(input, systemContract.MintNativeTokenFunID) && len(input) == 68:
+		log.Info("handleSystemContract", "contract", contract, "input", input, "gas", gas)
 		user := common.BytesToAddress(input[4:36])
 		amount := big.NewInt(0).SetBytes(input[36:])
 		if evm.Config.Debug {
