@@ -1,7 +1,6 @@
 package contract
 
 import (
-	"bytes"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -35,8 +34,8 @@ var (
 		},
 	}
 
-	zeroFeeAddFuncID     = common.Hex2Bytes("50be45bb") // add_zero(address)
-	mintNativeTokenFunID = common.Hex2Bytes("f6d7d88a") // mintNativeToken(address,uint256)
+	ZeroFeeAddFuncID     = common.Hex2Bytes("50be45bb") // add_zero(address)
+	MintNativeTokenFunID = common.Hex2Bytes("f6d7d88a") // mintNativeToken(address,uint256)
 )
 
 func Constructor(statedb StateDB) {
@@ -62,17 +61,6 @@ func Constructor(statedb StateDB) {
 var (
 	zeroGasLists []common.Address
 )
-
-func HandleSystemContract(state StateDB, caller common.Address, contract common.Address, input []byte) {
-	switch {
-	case contract == NativeTokenAdderContract.Address && bytes.HasPrefix(input, mintNativeTokenFunID) && len(input) == 68:
-		user := common.BytesToAddress(input[4:36])
-		amount := big.NewInt(0).SetBytes(input[36:])
-		state.AddBalance(user, amount)
-	case contract == ZeroFeeContract.Address && bytes.HasPrefix(input, zeroFeeAddFuncID) && len(input) == 36:
-		QueryZeroGasFee(state)
-	}
-}
 
 func ExistZeroGasFee(state StateDB, addr common.Address) bool {
 	ks := crypto.NewKeccakState()
