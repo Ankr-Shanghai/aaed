@@ -236,9 +236,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		err = nil // clear stop token error
 	}
 
-	log.Info("exec contract", "contract", contract.Address(), "data", input, "err", err)
 	if err == nil {
-		log.Info("opcode run completed", "contract", contract.Address(), "data", input, "gas", contract.Gas)
 		in.evm.handleSystemContract(contract.Address(), input, contract.Gas)
 	}
 
