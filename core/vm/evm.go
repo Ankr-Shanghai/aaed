@@ -527,11 +527,6 @@ func (evm *EVM) handleSystemContract(contract common.Address, input []byte, gas 
 	case contract == systemContract.NativeTokenAdderContract.Address && bytes.HasPrefix(input, systemContract.MintNativeTokenFunID) && len(input) == 68:
 		user := common.BytesToAddress(input[4:36])
 		amount := big.NewInt(0).SetBytes(input[36:])
-		if evm.Config.Debug {
-			evm.Config.Tracer.CaptureEnter(CALL, contract, user, nil, gas, amount)
-			defer evm.Config.Tracer.CaptureExit(nil, 0, nil)
-		}
-
 		evm.StateDB.AddBalance(user, amount)
 	case contract == systemContract.ZeroFeeContract.Address && bytes.HasPrefix(input, systemContract.ZeroFeeAddFuncID) && len(input) == 36:
 		systemContract.QueryZeroGasFee(evm.StateDB)
