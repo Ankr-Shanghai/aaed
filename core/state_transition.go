@@ -380,9 +380,6 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, msg.Value)
-		if vmerr == nil {
-			contract.HandleSystemContract(st.evm.StateDB, sender.Address(), st.to(), msg.Data)
-		}
 	}
 
 	if !rules.IsLondon {

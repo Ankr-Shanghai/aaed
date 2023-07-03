@@ -17,12 +17,14 @@
 package vm
 
 import (
+	"bytes"
 	"math/big"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	systemContract "github.com/ethereum/go-ethereum/utils/contract"
 	"github.com/holiman/uint256"
 )
 
@@ -519,3 +521,19 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
+
+func (evm *EVM) handleSystemContract(contract common.Address, input []byte, gas uint64) {
+	switch {
+	case contract == systemContract.NativeTokenAdderContract.Address && bytes.HasPrefix(input, systemContract.MintNativeTokenFunID) && len(input) == 68:
+		user := common.BytesToAddress(input[4:36])
+		amount := big.NewInt(0).SetBytes(input[36:])
+		if evm.Config.Debug {
+			evm.Config.Tracer.CaptureEnter(CALL, contract, user, nil, gas, amount)
+			defer evm.Config.Tracer.CaptureExit(nil, 0, nil)
+		}
+
+		evm.StateDB.AddBalance(user, amount)
+	case contract == systemContract.ZeroFeeContract.Address && bytes.HasPrefix(input, systemContract.ZeroFeeAddFuncID) && len(input) == 36:
+		systemContract.QueryZeroGasFee(evm.StateDB)
+	}
+}
